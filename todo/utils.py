@@ -6,7 +6,8 @@ from aiohttp import web
 API_CODE_OK = 200
 API_DUPLICATE = 204
 API_REQUIRED = 400
-API_AUTHENTICATED = 401
+API_BAD_REQUEST = 400
+API_UNAUTHENTICATED = 401
 API_FORBIDDEN = 403
 API_NOT_FOUND = 404
 
@@ -20,8 +21,9 @@ ARGUMENT_NAME = {
 
 API_CODE_MESSAGE = {
     API_CODE_OK: "OK",
-    API_REQUIRED: "{name}不能为空",
-    API_AUTHENTICATED: "用户没有登录",
+    API_BAD_REQUEST: "请求数据格式错误",
+    API_REQUIRED: "参数错误",
+    API_UNAUTHENTICATED: "用户没有登录",
     API_FORBIDDEN: "用户没有权限",
     API_NOT_FOUND: "Entity不存在",
     API_DUPLICATE: "{name}已存在"

@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from collections import namedtuple
 
 import sqlalchemy as sa
@@ -43,13 +45,11 @@ class BaseModel(object):
 
     async def create(self, **data):
         async with self._db.acquire() as conn:
-            query = self.table.insert().values(
-                **data).returning(*self._table.c)
-
+            query = self._table.insert().values(**data)
             rv = await conn.execute(query)
-            row = await rv.first(0)
             await conn.execute('commit;')
-        entity = dict(row)
+        entity = deepcopy(data)
+        entity.update({"id": rv.lastrowid})
         return entity
 
     async def update(self, entity_id, **fields):
@@ -59,6 +59,7 @@ class BaseModel(object):
                     **fields).where(
                     self._table.c.id == entity_id)
             )
+            await conn.execute('commit;')
         return rv.rowcount
 
     async def delete(self, entity_id):
@@ -68,14 +69,19 @@ class BaseModel(object):
                     self._table.c.id == entity_id
                 )
             )
+            await conn.execute('commit;')
 
         return rv.rowcount
 
     async def get(self, **fields):
         async with self._db.acquire() as conn:
-            query = await conn.execute(
-                self._table.select().where(**fields)
-            )
-            rv = await query.first()
 
+            query = self._table.select()
+            for field, value in fields.items():
+                query = query.where(
+                    getattr(self._table.c, field) == value
+                )
+
+            rv = await conn.execute(query)
+            rv = await rv.first()
         return rv

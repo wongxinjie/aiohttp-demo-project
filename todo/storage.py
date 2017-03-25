@@ -36,10 +36,20 @@ class BaseModel(object):
         self._db = db
         self._table = table
 
+    def create_filters(self, query, filters):
+        for field, value in filters.items():
+            query = query.where(
+                getattr(self._table.c, field) == value
+            )
+        return query
+
     async def list(self, **filters):
         async with self._db.acquire() as conn:
-            rvs = await conn.execute(
-                self._table.select().where(**filters))
+            query = self._table.select()
+
+            query = self.create_filters(query, filters)
+            rvs = await conn.execute(query)
+
             entities = list(map(dict, rvs))
         return entities
 
@@ -52,35 +62,32 @@ class BaseModel(object):
         entity.update({"id": rv.lastrowid})
         return entity
 
-    async def update(self, entity_id, **fields):
-        async with self._db.acquire() as conn:
-            rv = await conn.execute(
-                self._table.update().values(
-                    **fields).where(
-                    self._table.c.id == entity_id)
-            )
-            await conn.execute('commit;')
-        return rv.rowcount
+    async def update(self, **fields):
+        filters = fields.pop('_filters')
 
-    async def delete(self, entity_id):
         async with self._db.acquire() as conn:
-            rv = await conn.execute(
-                self._table.delete().where(
-                    self._table.c.id == entity_id
-                )
-            )
+            query = self._table.update().vaues(**fields)
+            query = self.create_filters(query, filters)
+
+            rv = await conn.execute(query)
             await conn.execute('commit;')
 
         return rv.rowcount
 
-    async def get(self, **fields):
+    async def delete(self, **filters):
         async with self._db.acquire() as conn:
+            query = self._table.delete()
+            query = self.create_filters(query, filters)
 
+            rv = await conn.execute(query)
+            await conn.execute('commit;')
+
+        return rv.rowcount
+
+    async def get(self, **filters):
+        async with self._db.acquire() as conn:
             query = self._table.select()
-            for field, value in fields.items():
-                query = query.where(
-                    getattr(self._table.c, field) == value
-                )
+            query = self.create_filters(query, filters)
 
             rv = await conn.execute(query)
             rv = await rv.first()

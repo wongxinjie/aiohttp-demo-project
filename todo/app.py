@@ -12,7 +12,7 @@ from aiohttp_session.cookie_storage import EncryptedCookieStorage
 from . import settings
 from . import middlewares
 from .auth import views as auth_views
-# from .api import views as api_views
+from .api import views as api_views
 # from .utils import add_route_context
 
 logging.basicConfig(
@@ -45,13 +45,17 @@ def setup_router(app):
     #     add_route('POST', '/todos', 'create_todo')
     #     add_route('DELETE', '/todos/{todo_id:\d+}', 'remove_todo')
     #     add_route('POST', '/todos/{todo_id:\d}', 'update_todo')
-    user_handler = auth_views.UserHandler()
-    app.router.add_route(
-        'POST', '/auth/register', user_handler.register)
-    app.router.add_route(
-        'POST', '/auth/login', user_handler.login)
-    app.router.add_route(
-        'GET', '/auth/logout', user_handler.logout)
+
+    user = auth_views.UserHandler()
+    app.router.add_route('POST', '/auth/register', user.register)
+    app.router.add_route('POST', '/auth/login', user.login)
+    app.router.add_route('GET', '/auth/logout', user.logout)
+
+    todo = api_views.TodoHandler()
+    app.router.add_route('GET', '/api/todos', todo.list, name="list_todo")
+    app.router.add_route('POST', '/api/todos', todo.create)
+    app.router.add_route('DELETE', '/api/todos/{todo_id:\d+}', todo.delete)
+    app.router.add_route('POST', '/api/todos/{todo_id:\d+}', todo.update)
 
     if settings.DEBUG:
         app.router.add_static('/static', settings.STATIC_PATH, name='static')

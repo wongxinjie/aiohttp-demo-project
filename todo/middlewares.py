@@ -16,7 +16,9 @@ async def db_middleware(app, handler):
                 user=db_conf['USERNAME'],
                 db=db_conf['DB'],
                 host=db_conf['HOST'],
-                password=db_conf['PASSWORD']
+                password=db_conf['PASSWORD'],
+                charset='utf8',
+                use_unicode=True
             )
 
         request.app['db'] = db
@@ -39,6 +41,7 @@ async def authorize(app, handler):
 
         session = await get_session(request)
         if session.get("user"):
+            request.app['userid'] = session.get("user")
             return await handler(request)
 
         if check_auth(request.path):

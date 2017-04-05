@@ -1,5 +1,4 @@
 from copy import deepcopy
-
 from collections import namedtuple
 
 import sqlalchemy as sa
